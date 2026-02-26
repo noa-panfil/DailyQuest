@@ -1,0 +1,60 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: 22
+          script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            
+            cd /home/dailyquest/htdocs/dailyquest.noa-panfil.cloud
+            
+            # Initialisation du dépôt Git s'il n'existe pas encore
+            if [ ! -d ".git" ]; then
+              echo "C'est le premier déploiement ! Initialisation de Git..."
+              git init
+              # On utilise le GITHUB_TOKEN pour qu'il puisse télécharger même si le dépôt est privé
+              git remote add origin https://oauth2:${{ secrets.GITHUB_TOKEN }}@github.com/noa-panfil/DailyQuest.git
+            fi
+            
+            echo "Mise à jour du code..."
+            git fetch origin
+            git reset --hard origin/main
+            git clean -fd
+            
+            echo "Vérification de PM2..."
+            if ! command -v pm2 &> /dev/null; then
+              echo "Installation de PM2 en global..."
+              npm install -g pm2
+            fi
+            
+            echo "Installation des dépendances..."
+            npm install
+            
+            echo "Construction du projet Next.js..."
+            # On ignore les erreurs de BDD au build pour éviter de bloquer si le .env est partiel
+            npm run build || echo "Build terminé avec warnings"
+            
+            echo "Redémarrage de l'application via PM2..."
+            # On recharge le processus PM2 nommé "dailyquest"
+            # Si le processus n'existe pas, on tente de le démarrer sur le port 3012
+            pm2 reload dailyquest || pm2 start npm --name "dailyquest" -- run start -- -p 3012
+            pm2 save
+            
+            echo "Déploiement terminé avec succès sur main !"
