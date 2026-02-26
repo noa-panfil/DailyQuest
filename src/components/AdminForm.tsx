@@ -11,7 +11,7 @@ export default function AdminForm() {
         setIsPending(true);
         setMessage({});
 
-        const result = await addDailyQuestion(formData);
+        const result = await addDailyQuestion(null, formData);
 
         if (result.error) {
             setMessage({ error: result.error });

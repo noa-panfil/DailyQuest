@@ -4,7 +4,7 @@ import { query } from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
-export async function addDailyQuestion(formData: FormData) {
+export async function addDailyQuestion(prevState: any, formData: FormData) {
     const session = await requireAuth();
     const userId = session.userId as number;
 
@@ -38,7 +38,7 @@ export async function addDailyQuestion(formData: FormData) {
     }
 }
 
-export async function deleteDailyQuestion(formData: FormData) {
+export async function deleteDailyQuestion(prevState: any, formData: FormData) {
     const session = await requireAuth();
     const userId = session.userId as number;
     const questionId = Number(formData.get("questionId"));
