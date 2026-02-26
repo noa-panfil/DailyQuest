@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { updatePrivacySettings } from "./actions";
 
-export default function PrivacyForm({ initialFriendsPrivacy, initialAnswersPrivacy }: { initialFriendsPrivacy: string, initialAnswersPrivacy: string }) {
+export default function PrivacyForm({ initialFriendsPrivacy, initialAnswersPrivacy, initialCompatibilityPrivacy }: { initialFriendsPrivacy: string, initialAnswersPrivacy: string, initialCompatibilityPrivacy: string }) {
     const [isPending, setIsPending] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
     const [privacyFriends, setPrivacyFriends] = useState(initialFriendsPrivacy);
     const [privacyAnswers, setPrivacyAnswers] = useState(initialAnswersPrivacy);
+    const [privacyCompatibility, setPrivacyCompatibility] = useState(initialCompatibilityPrivacy);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,6 +18,7 @@ export default function PrivacyForm({ initialFriendsPrivacy, initialAnswersPriva
         const formData = new FormData();
         formData.append("privacyFriends", privacyFriends);
         formData.append("privacyAnswers", privacyAnswers);
+        formData.append("privacyCompatibility", privacyCompatibility);
 
         const res = await updatePrivacySettings(formData);
 
@@ -67,6 +69,19 @@ export default function PrivacyForm({ initialFriendsPrivacy, initialAnswersPriva
                     <option value="public">🌍 Tout le monde (Public)</option>
                     <option value="friends">👥 Mes amis uniquement</option>
                     <option value="private">🔒 Seulement moi (Privé)</option>
+                </select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+                <label className="text-sm font-bold text-slate-400 uppercase tracking-widest px-1">Qui peut voir ta jauge de compatibilité ?</label>
+                <select
+                    value={privacyCompatibility}
+                    onChange={(e) => setPrivacyCompatibility(e.target.value)}
+                    className="w-full bg-slate-950/50 border border-slate-700 p-3 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium appearance-none"
+                >
+                    <option value="public">🌍 Tout le monde (Public)</option>
+                    <option value="friends">👥 Mes amis uniquement</option>
+                    <option value="private">🔒 Personne (Privé)</option>
                 </select>
             </div>
 

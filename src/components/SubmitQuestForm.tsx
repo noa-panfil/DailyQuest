@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { submitDailyAnswer } from "@/app/actions";
+import confetti from "canvas-confetti";
 
 export default function SubmitQuestForm({ question }: { question: any }) {
     const [isPending, setIsPending] = useState(false);
@@ -33,6 +34,44 @@ export default function SubmitQuestForm({ question }: { question: any }) {
             setMessage({ error: result.error });
         } else if (result.success) {
             setMessage({ success: true });
+
+            if (result.gainedStrike) {
+                // Animation de confettis pour la nouvelle strike !
+                const duration = 1000;
+                const end = Date.now() + duration;
+
+                const frame = () => {
+                    confetti({
+                        particleCount: 5,
+                        angle: 60,
+                        spread: 55,
+                        origin: { x: 0 },
+                        colors: ['#818cf8', '#34d399', '#fbbf24'] // indigo, emerald, amber
+                    });
+                    confetti({
+                        particleCount: 5,
+                        angle: 120,
+                        spread: 55,
+                        origin: { x: 1 },
+                        colors: ['#818cf8', '#34d399', '#fbbf24']
+                    });
+
+                    if (Date.now() < end) {
+                        requestAnimationFrame(frame);
+                    }
+                };
+
+                // Petit effet "pop" immédiat
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#818cf8', '#34d399', '#fbbf24'],
+                    zIndex: 9999
+                });
+
+                frame();
+            }
         }
 
         setIsPending(false);
@@ -51,8 +90,8 @@ export default function SubmitQuestForm({ question }: { question: any }) {
                         type="button"
                         onClick={() => setSelectedOption(opt.id)}
                         className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${selectedOption === opt.id
-                                ? "bg-indigo-600 border-indigo-500 shadow-md"
-                                : "bg-slate-900 border-slate-700 hover:bg-slate-800 text-slate-300"
+                            ? "bg-indigo-600 border-indigo-500 shadow-md"
+                            : "bg-slate-900 border-slate-700 hover:bg-slate-800 text-slate-300"
                             } text-sm font-medium`}
                     >
                         <div className="flex items-center gap-3">

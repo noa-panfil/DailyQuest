@@ -29,7 +29,7 @@ export default function GroupsList({
                         </svg>
                     </div>
                     <h3 className="text-lg font-bold text-slate-300">Aucun groupe</h3>
-                    <p className="text-sm text-slate-500">Crée un groupe pour discuter de la quête avec tes amis !</p>
+                    <p className="text-sm text-slate-500">Crée un groupe pour discuter de la question avec tes amis !</p>
                 </div>
             ) : (
                 groups.map((group: any) => {

@@ -46,12 +46,19 @@ export async function updatePrivacySettings(formData: FormData) {
 
         const privacyFriends = formData.get("privacyFriends") as string;
         const privacyAnswers = formData.get("privacyAnswers") as string;
+        const privacyCompatibility = formData.get("privacyCompatibility") as string;
 
-        if (!['public', 'friends', 'private'].includes(privacyFriends) || !['public', 'friends', 'private'].includes(privacyAnswers)) {
+        const validEnums = ['public', 'friends', 'private'];
+        if (!validEnums.includes(privacyFriends) || !validEnums.includes(privacyAnswers) || (privacyCompatibility && !validEnums.includes(privacyCompatibility))) {
             return { error: "Valeurs de confidentialité invalides." };
         }
 
-        await query("UPDATE users SET privacy_friends = ?, privacy_answers = ? WHERE id = ?", [privacyFriends, privacyAnswers, userId]);
+        // Add compatibility to query if it exists (for backward compatibility if form not updated)
+        if (privacyCompatibility) {
+            await query("UPDATE users SET privacy_friends = ?, privacy_answers = ?, privacy_compatibility = ? WHERE id = ?", [privacyFriends, privacyAnswers, privacyCompatibility, userId]);
+        } else {
+            await query("UPDATE users SET privacy_friends = ?, privacy_answers = ? WHERE id = ?", [privacyFriends, privacyAnswers, userId]);
+        }
 
         return { success: true };
     } catch (e) {

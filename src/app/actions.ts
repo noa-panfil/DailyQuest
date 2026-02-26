@@ -44,16 +44,34 @@ export async function submitDailyAnswer(formData: FormData) {
 
         const answerId = insertResult.insertId || await query("SELECT id FROM user_answers WHERE user_id = ? AND question_id = ?", [userId, questionId]).then((res: any) => res[0].id);
 
+        const userBefore: any = await query("SELECT strike_count FROM users WHERE id = ?", [userId]);
+        const oldStrike = userBefore[0]?.strike_count || 0;
+
         // 3. Mettre à jour le strike count de l'utilisateur
-        // Optionnel : ne le mettre à jour que s'il n'avait pas encore répondu aujourd'hui.
+        // On se base sur la date d'apparition prévue de la question (scheduled_date)
+        // et non plus sur l'heure exacte du serveur pour éviter les bugs avec le roulement à midi.
         await query(`
             UPDATE users 
+            JOIN daily_questions dq ON dq.id = ?
             SET 
-                strike_count = strike_count + 1, 
-                max_strike_count = GREATEST(max_strike_count, strike_count + 1),
-                last_answered_date = CURDATE() 
-            WHERE id = ? AND (last_answered_date IS NULL OR last_answered_date < CURDATE())
-        `, [userId]);
+                users.strike_count = CASE 
+                    WHEN users.last_answered_date = DATE_SUB(dq.scheduled_date, INTERVAL 1 DAY) THEN users.strike_count + 1
+                    WHEN users.last_answered_date = dq.scheduled_date THEN users.strike_count
+                    ELSE 1 
+                END,
+                users.max_strike_count = GREATEST(users.max_strike_count, CASE 
+                    WHEN users.last_answered_date = DATE_SUB(dq.scheduled_date, INTERVAL 1 DAY) THEN users.strike_count + 1
+                    WHEN users.last_answered_date = dq.scheduled_date THEN users.strike_count
+                    ELSE 1 
+                END),
+                users.last_answered_date = dq.scheduled_date 
+            WHERE users.id = ?
+        `, [questionId, userId]);
+
+        const userAfter: any = await query("SELECT strike_count FROM users WHERE id = ?", [userId]);
+        const newStrike = userAfter[0]?.strike_count || 0;
+        const gainedStrike = newStrike > oldStrike || newStrike === 1; // Animation if incremented OR if restored to 1
+
         // 4. Publier automatiquement ce choix dans tous les groupes de l'utilisateur
         const userGroups: any = await query("SELECT group_id FROM group_members WHERE user_id = ?", [userId]);
 
@@ -66,7 +84,7 @@ export async function submitDailyAnswer(formData: FormData) {
 
         revalidatePath("/");
 
-        return { success: true };
+        return { success: true, gainedStrike };
 
     } catch (error: any) {
         console.error("Erreur d'insertion de réponse :", error);

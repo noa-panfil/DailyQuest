@@ -6,6 +6,7 @@ import AddFriendButton from "@/components/AddFriendButton";
 import RemoveFriendButton from "@/components/RemoveFriendButton";
 import BackButton from "@/components/BackButton";
 import BottomNav from "@/components/BottomNav";
+import ProfileTracker from "@/components/ProfileTracker";
 
 export default async function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const session = await requireAuth();
@@ -68,6 +69,27 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
     // 4. Fetch based on privacy settings
     let profileFriends: any[] = [];
     let recentAnswers: any[] = [];
+    let compatibilityPercentage: number | null = null;
+    let commonAnswersCount = 0;
+
+    const privacyCompatibility = profileUser.privacy_compatibility || 'public';
+    const canViewCompatibility = !isOwnProfile && (privacyCompatibility === 'public' || (privacyCompatibility === 'friends' && isFriends));
+
+    if (canViewCompatibility) {
+        const compRes: any = await query(`
+            SELECT 
+                SUM(CASE WHEN ua1.selected_option = ua2.selected_option THEN 1 ELSE 0 END) as matching_answers,
+                COUNT(*) as total_common
+            FROM user_answers ua1
+            JOIN user_answers ua2 ON ua1.question_id = ua2.question_id
+            WHERE ua1.user_id = ? AND ua2.user_id = ?
+        `, [currentUserId, profileId]);
+
+        if (compRes.length > 0 && compRes[0].total_common > 0) {
+            commonAnswersCount = compRes[0].total_common;
+            compatibilityPercentage = Math.round((compRes[0].matching_answers / commonAnswersCount) * 100);
+        }
+    }
 
     if (canViewFriends) {
         profileFriends = (await query(`
@@ -98,6 +120,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                 </h1>
                 <BackButton fallbackUrl="/friends" />
             </header>
+
+            {!isOwnProfile && <ProfileTracker user={{ id: profileId, username: profileUser.username }} />}
 
             <main className="flex-1 flex flex-col relative w-full max-w-md mx-auto p-4 gap-6">
 
@@ -146,6 +170,42 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                             <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-widest mt-1 text-center">Record absolu</span>
                         </div>
                     </div>
+
+                    {/* Jauge de Compatibilité */}
+                    {canViewCompatibility && (
+                        <div className="w-full mt-6 bg-slate-800/80 rounded-2xl p-4 border border-slate-700 flex flex-col gap-2 z-10">
+                            <div className="flex justify-between items-center px-1">
+                                <span className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-pink-500" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                                    </svg>
+                                    Compatibilité
+                                </span>
+                                {compatibilityPercentage !== null ? (
+                                    <span className="text-lg font-black text-white">{compatibilityPercentage}%</span>
+                                ) : (
+                                    <span className="text-xs text-slate-500 font-medium">Pas assez de données</span>
+                                )}
+                            </div>
+
+                            <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-700/50">
+                                {compatibilityPercentage !== null ? (
+                                    <div
+                                        className="h-full bg-gradient-to-r from-pink-500 to-indigo-500 rounded-full transition-all duration-1000 ease-out"
+                                        style={{ width: `${compatibilityPercentage}%` }}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-slate-800/50" />
+                                )}
+                            </div>
+
+                            {compatibilityPercentage !== null && (
+                                <p className="text-[10px] text-slate-500 text-center mt-1">
+                                    Basé sur {commonAnswersCount} réponse{commonAnswersCount > 1 ? 's' : ''} en commun
+                                </p>
+                            )}
+                        </div>
+                    )}
 
                     {/* Bouton d'action */}
                     {!isOwnProfile && (

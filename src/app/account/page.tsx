@@ -11,7 +11,7 @@ export default async function AccountPage() {
     const session = await requireAuth();
     const userId = session.userId as number;
 
-    const userRes: any = await query("SELECT id, username, email, strike_count, max_strike_count, privacy_friends, privacy_answers, profile_picture FROM users WHERE id = ?", [userId]);
+    const userRes: any = await query("SELECT id, username, email, strike_count, max_strike_count, privacy_friends, privacy_answers, privacy_compatibility, profile_picture FROM users WHERE id = ?", [userId]);
     const user = userRes[0];
 
     // Convert Buffer to base64 if it exists
@@ -124,11 +124,29 @@ export default async function AccountPage() {
 
                 {/* Privacy Sub-section */}
                 <h3 className="text-lg font-bold text-slate-100 mt-2 px-1">Confidentialité</h3>
-                <PrivacyForm initialFriendsPrivacy={user.privacy_friends} initialAnswersPrivacy={user.privacy_answers} />
+                <PrivacyForm
+                    initialFriendsPrivacy={user.privacy_friends}
+                    initialAnswersPrivacy={user.privacy_answers}
+                    initialCompatibilityPrivacy={user.privacy_compatibility || 'public'}
+                />
 
                 {/* Password Change Sub-section */}
                 <h3 className="text-lg font-bold text-slate-100 mt-2 px-1">Sécurité</h3>
                 <PasswordForm />
+
+                {/* Application Sub-section */}
+                <h3 className="text-lg font-bold text-slate-100 mt-2 px-1">Application</h3>
+                <Link href="/download" className="bg-slate-900 hover:bg-slate-800 border border-slate-700/50 p-6 rounded-3xl shadow-xl flex items-center justify-between group transition-colors">
+                    <div className="flex flex-col gap-1">
+                        <span className="text-white font-bold text-base group-hover:text-indigo-400 transition-colors">Télécharger l'App</span>
+                        <span className="text-sm text-slate-400">Installer DailyQuest sur l'écran d'accueil</span>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-indigo-500/10 group-hover:text-indigo-400 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                    </div>
+                </Link>
 
             </main>
 

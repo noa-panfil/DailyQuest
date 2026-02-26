@@ -1,25 +1,45 @@
 import mysql from 'mysql2/promise';
 
-let connection: mysql.Connection | null = null;
+// Cache the connection pool globally in development so it's not recreated on every HMR.
+// eslint-disable-next-line no-var
+declare global {
+    var _mysqlPool: mysql.Pool | undefined;
+}
 
-export async function getConnection() {
-    if (connection) {
-        return connection;
-    }
+let pool: mysql.Pool;
 
-    connection = await mysql.createConnection({
+if (process.env.NODE_ENV === 'production') {
+    pool = mysql.createPool({
         host: process.env.DB_HOST || '127.0.0.1',
         port: Number(process.env.DB_PORT) || 3306,
         user: process.env.DB_USER || 'root',
         password: process.env.DB_PASSWORD || '',
         database: process.env.DB_NAME || 'dailyquest',
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
     });
+} else {
+    if (!global._mysqlPool) {
+        global._mysqlPool = mysql.createPool({
+            host: process.env.DB_HOST || '127.0.0.1',
+            port: Number(process.env.DB_PORT) || 3306,
+            user: process.env.DB_USER || 'root',
+            password: process.env.DB_PASSWORD || '',
+            database: process.env.DB_NAME || 'dailyquest',
+            waitForConnections: true,
+            connectionLimit: 10,
+            queueLimit: 0,
+        });
+    }
+    pool = global._mysqlPool;
+}
 
-    return connection;
+export async function getConnection() {
+    return pool.getConnection();
 }
 
 export async function query(sql: string, values?: any[]) {
-    const db = await getConnection();
-    const [results] = await db.query(sql, values);
+    const [results] = await pool.query(sql, values);
     return results;
 }

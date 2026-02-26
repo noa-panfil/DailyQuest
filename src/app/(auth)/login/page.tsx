@@ -18,7 +18,7 @@ export default function LoginPage() {
                 <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent mb-2">
                     DailyQuest
                 </h1>
-                <p className="text-slate-400 text-sm mb-8 font-medium">Bon retour ! Prêt pour la quête du jour ?</p>
+                <p className="text-slate-400 text-sm mb-8 font-medium">Bon retour ! Prêt pour la question du jour ?</p>
 
                 <form action={formAction} className="w-full flex flex-col gap-4">
                     <div className="flex flex-col gap-1">
